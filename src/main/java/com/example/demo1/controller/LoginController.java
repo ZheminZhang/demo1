@@ -2,7 +2,6 @@ package com.example.demo1.controller;
 
 import java.util.HashMap;
 import java.util.List;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,7 +11,11 @@ import java.net.URLConnection;
 import java.util.List;
 import java.util.Map;
 
-import com.example.demo1.entity.wd_product;
+
+import com.example.demo1.dao.LoginMapper;
+import com.google.gson.Gson;
+
+import jdk.nashorn.internal.objects.NativeJSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -22,25 +25,43 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/login")
 
 public class LoginController {
+    @Autowired
+    LoginMapper loginMapper;
 
     @RequestMapping(value={"/user_login"}, method=RequestMethod.GET)
-    public String getProductData(String code){
-        String url = "https://api.weixin.qq.com/sns/jscode2session";
-        String appid = "wxe9f348c2692ffe5c";
+    public Map<String, String> login_hander(String code){
+        Map<String, String> res_map = new HashMap<String, String>();//返回结果
+
+        String url = "https://api.weixin.qq.com/sns/jscode2session";//获取session_key的url
+        String appid = "wxe9f348c2692ffe5c";//APPID
         String secret = "4461a9c9bedbf8b0cae7f1549575e9d4";
         String param = "appid=" +appid+"&secret="+secret+"&js_code=" + (String)code +"&grant_type=authorization_code";
         String resu =  GetRequest.sendGet(url, param);//获取的数据包
-        System.out.println(resu);//测试
+
+        //转为字典，包含openid和session_key
+        Gson gson = new Gson();
+        Map<String, String> map = new HashMap<String, String>();
+        map = gson.fromJson(resu, map.getClass());
+        String openid = map.get("openid");
+        String Session_key = map.get("session_key");
+        //TODO：openid作为id查询用户，如果不存在则写入(新用户)
+
+        Integer hashed =  resu.hashCode();
+
+
+        //下面几行为unionid获取的测试，目前暂不能获取，权限不够
         //Access_token access_token = new Access_token();
         //String access = access_token.get(appid, secret);//需要获取access token,类修改后可以增加判断
         //String user_info = GetRequest.sendGet()
-        return "done";
+
+        res_map.put("token", hashed.toString());
+        return res_map;
     }
 }
 
 class GetRequest {
 
-    public static String sendGet(String url, String param) {
+    static String sendGet(String url, String param) {
         String result = "";
         Map<String, List<String>> map = new HashMap<String, List<String>>();
         BufferedReader in = null;
