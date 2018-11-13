@@ -1,38 +1,66 @@
 package com.example.demo1.controller;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.List;
-import java.util.Map;
-
-import com.example.demo1.entity.wd_product;
+import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
+import com.example.demo1.dao.ApplyMapper;
+import com.example.demo1.dao.LoginMapper;
+import com.example.demo1.entity.WXUser;
+import com.example.demo1.entity.Message;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo1.controller.MoblieMessageUtil;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/apply")
 
 
 public class ApplyController {
+
+    @Autowired
+    ApplyMapper applyMapper;
+
     @RequestMapping(value={"/check_code"}, method=RequestMethod.POST)
-    public String return_val_code(@RequestBody Message msg) throws CliException {
-        System.out.println(msg.getToken());
+    public Map<String, String> return_val_code(@RequestBody Message msg) throws CliException {
         String code = getRandomString();
-        MoblieMessageUtil.sendIdentifyingCode(msg.getPhone(), code);
-        return "success";
+        //System.out.println(respon);
+        SendSmsResponse respon = MoblieMessageUtil.sendIdentifyingCode(msg.getPhone(), code);
+//        while(respon.getCode() != "OK"){//请求直到得到‘OK’
+//            //System.out.println(respon.getCode());
+//            respon = MoblieMessageUtil.sendIdentifyingCode(msg.getPhone(), code);
+//        }
+        Map<String, String> res_map = new HashMap<String, String>();
+        res_map.put("data", code);
+        return res_map;
     }
 
-    public static String getRandomString(){
-        StringBuffer buffer = new StringBuffer();
+    @RequestMapping(value={"/verified_code"}, method = RequestMethod.POST)
+    public Map<String, String> store_phone(@RequestBody Message msg) {
+        //TODO: 用idx查询用户，然后添加手机，如果用户手机已经存在？？？
+        Map<String, String> res_map = new HashMap<String, String>();
+        String openid = msg.getIdx();
+        WXUser find_user = applyMapper.selectUserByOpenId(openid);
+        if(find_user == null){
+            //没找到用户 说明客户端逻辑有错，或者是对端口的直接申请(攻击)
+            System.out.println("without this user");
+            return res_map;
+        }
+        WXUser new_user = new WXUser();
+        new_user.setUsername(msg.getName());
+        new_user.setOpen_id(msg.getIdx());
+        new_user.setPhonenum(msg.getPhone());
+        applyMapper.updateWXUser(new_user);//updata的条件判断，什么时候updata
+        //TODO: 不同类型的用户，有的用户第一次填写相关信息
+        res_map.put("state", "OK");
+        return res_map;
+    }
+
+    private  String getRandomString(){
+        StringBuilder buffer = new StringBuilder();
         Random random = new Random();
         int index;   //获取随机chars下标
         for(int i=0;i<4;i++){
@@ -43,35 +71,4 @@ public class ApplyController {
     }
 }
 
-class Message {
-    //private String code;
-    private String token;
-    private  String phone_num;
-//    private String content;
 
-    public Message() {}
-
-//    public String getCode() {
-//        return this.code;
-//    }
-
-    String getToken() {
-        return this.token;
-    }
-
-    String getPhone() {
-        return this.phone_num;
-    }
-
-//    public void setFrom(String value) {
-//        this.from = value;
-//    }
-//
-//    public void setTo(String value) {
-//        this.to = value;
-//    }
-//
-//    public void setContent(String value) {
-//        this.content = value;
-//    }
-}

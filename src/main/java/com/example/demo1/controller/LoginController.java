@@ -3,19 +3,16 @@ package com.example.demo1.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.List;
 import java.util.Map;
 
 
 import com.example.demo1.dao.LoginMapper;
+import com.example.demo1.entity.WXUser;
 import com.google.gson.Gson;
 
-import jdk.nashorn.internal.objects.NativeJSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -26,11 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 public class LoginController {
     @Autowired
+    private
     LoginMapper loginMapper;
 
     @RequestMapping(value={"/user_login"}, method=RequestMethod.GET)
-    public Map<String, String> login_hander(String code){
-        Map<String, String> res_map = new HashMap<String, String>();//返回结果
+    public Map<String, Object> login_hander(String code){
+        Map<String, Object> res_map = new HashMap<>();//返回结果
 
         String url = "https://api.weixin.qq.com/sns/jscode2session";//获取session_key的url
         String appid = "wxe9f348c2692ffe5c";//APPID
@@ -40,21 +38,25 @@ public class LoginController {
 
         //转为字典，包含openid和session_key
         Gson gson = new Gson();
-        Map<String, String> map = new HashMap<String, String>();
+        Map map = new HashMap<>();
         map = gson.fromJson(resu, map.getClass());
-        String openid = map.get("openid");
-        String Session_key = map.get("session_key");
+        Object openid = map.get("openid");
+        Object Session_key = map.get("session_key");
         //TODO：openid作为id查询用户，如果不存在则写入(新用户)
-
-        Integer hashed =  resu.hashCode();
-
-
+        WXUser find_user = loginMapper.selectUserByOpenId(openid);
+        if(find_user == null){
+            WXUser new_user = new WXUser();
+            new_user.setOpen_id((String)openid);
+            loginMapper.addWXUser(new_user);//添加一个新用户
+        }
+        int hashed =  resu.hashCode();
         //下面几行为unionid获取的测试，目前暂不能获取，权限不够
         //Access_token access_token = new Access_token();
         //String access = access_token.get(appid, secret);//需要获取access token,类修改后可以增加判断
         //String user_info = GetRequest.sendGet()
 
-        res_map.put("token", hashed.toString());
+        res_map.put("token", Integer.toString(hashed));
+        res_map.put("idx", openid);//先使用openid
         return res_map;
     }
 }
@@ -108,7 +110,7 @@ class GetRequest {
     }
 }
 
-class Access_token{//获取access_token
+class Access_token{//获取access_token，目前没用
     // https://mp.weixin.qq.com/wiki?action=doc&id=mp1421140183
     // 1.需要增加判断是否有效函数
     // 2.将类设置成单例模式
@@ -129,7 +131,7 @@ class Access_token{//获取access_token
     }
 }
 
-class User
+class User//这部分目前还没用
 {//https://mp.weixin.qq.com/wiki?action=doc&id=mp1421140839
     // 绑定公众号后唯一
     Map<String, List<String>> info = new HashMap<String, List<String>>();

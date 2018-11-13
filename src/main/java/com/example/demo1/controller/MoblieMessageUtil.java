@@ -5,6 +5,7 @@ import com.aliyuncs.IAcsClient;
 import com.aliyuncs.dysmsapi.model.v20170525.SendSmsRequest;
 import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
 import com.aliyuncs.exceptions.ClientException;
+import com.aliyuncs.http.MethodType;
 import com.aliyuncs.profile.DefaultProfile;
 import com.aliyuncs.profile.IClientProfile;
 import java.text.SimpleDateFormat;
@@ -39,11 +40,11 @@ public class MoblieMessageUtil {
     private static final String domain = "dysmsapi.aliyuncs.com";
 
     //具体接口需求参数--TODO：数据库交互
-    private static String accessKeyId = "LTAIVGLty8tgo1Pn";
-    private static String accessKeySecret = "";
-    private static String signName = "测试server";
-    private static String identifyingTempleteCode = "SMS_109505420";
-    private static String registTempleteCode = "";
+    private static String accessKeyId = "LTAIExY1k5X9Psfy";
+    private static String accessKeySecret = "3vaBgpcRyRizB0oCzoAtnaR0pe5glK";
+    private static String signName = "小熊口袋";
+    private static String identifyingTempleteCode = "SMS_136870998";
+    private static String registTempleteCode = "SMS_136870998";
 
     public static void init(String accessKeyId, String accessKeySecret, String signName, String identifyingTempleteCode,
                             String registTempleteCode) {
@@ -55,7 +56,7 @@ public class MoblieMessageUtil {
     }
 
 //    public static void main(String[] args) {
-//        MoblieMessageUtil.init("key", "keysecret", "沉默王二", "SMS_110",
+//        MoblieMessageUtil.init("key", "keysecret", "", "SMS_110",
 //                "SMS_112");
 //        // 发短信
 //        SendSmsResponse response = MoblieMessageUtil.sendIdentifyingCode("手机号", "123456");
@@ -74,7 +75,7 @@ public class MoblieMessageUtil {
 //
 //    }
 
-    public static SendSmsResponse sendSms(String mobile, String templateParam, String templateCode)
+    private static SendSmsResponse sendSms(String mobile, String templateParam, String templateCode)
             throws ClientException {
 
         // 可自助调整超时时间
@@ -83,12 +84,14 @@ public class MoblieMessageUtil {
 
         // 初始化acsClient,暂不支持region化
         IClientProfile profile = DefaultProfile.getProfile("cn-hangzhou", accessKeyId, accessKeySecret);
+        //System.out.println(profile);
         DefaultProfile.addEndpoint("cn-hangzhou", "cn-hangzhou", product, domain);
         IAcsClient acsClient = new DefaultAcsClient(profile);
 
         // 组装请求对象-具体描述见控制台-文档部分内容
         SendSmsRequest request = new SendSmsRequest();
 
+        request.setMethod(MethodType.POST);
         // 必填:待发送手机号
         request.setPhoneNumbers(mobile);
         // 必填:短信签名-可在短信控制台中找到
